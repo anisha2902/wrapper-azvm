@@ -1,0 +1,33 @@
+name: Terraform Destroy
+
+on:
+  workflow_dispatch:
+
+env:
+  TF_IN_AUTOMATION: "true"
+  GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_KEY_PATH }}
+  GCP_KEY_JSON: ${{ secrets.GCP_KEY }}
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: vm-folder
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Create GCP credential file
+        run: |
+          echo "$GCP_KEY_JSON" > $HOME/gcp-key.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp-key.json" >> $GITHUB_ENV
+
+      - name: Terraform Init
+        run: terraform init -reconfigure
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve
