@@ -13,7 +13,6 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
 
-    # OIDC requires id-token: write. contents: read is standard for checkout.
     permissions:
       id-token: write
       contents: read
