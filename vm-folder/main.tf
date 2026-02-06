@@ -35,8 +35,14 @@ resource "azurerm_linux_virtual_machine" "vm" {
   location            = azurerm_resource_group.rg.location
   size                = "Standard_DC1s_v3"
   admin_username      = "adminuser"
-  admin_password      = "P@$$w0rd1234!"
-  disable_password_authentication = false 
+
+  admin_ssh_key {
+    username   = "adminuser"
+    public_key = var.ssh_public_key
+  }
+
+  disable_password_authentication = true
+
   network_interface_ids = [
     azurerm_network_interface.nic.id,
   ]
@@ -49,8 +55,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   source_image_reference {
     publisher = "Canonical"
     offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts-gen2"                          
+    sku       = "22_04-lts-gen2"
     version   = "latest"
   }
-
 }
