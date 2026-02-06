@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      id-token: write     # required for azure/login OIDC
+      id-token: write    
       contents: read
 
     defaults:
