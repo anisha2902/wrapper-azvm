@@ -2,23 +2,33 @@ name: Terraform Pipeline
 
 on:
   push:
+    branches: [ "main" ]
     paths:
-      - "vm-folder/**.tf"
+      - "vm-folder/**/*.tf"
       - ".github/workflows/terraform.yml"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "vm-folder/**/*.tf"
 
 env:
   TF_IN_AUTOMATION: "true"
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   terraform:
     runs-on: ubuntu-latest
 
     permissions:
-      id-token: write
+      id-token: write     # required for azure/login OIDC
       contents: read
 
     defaults:
       run:
+        shell: bash
         working-directory: vm-folder
 
     steps:
@@ -27,8 +37,10 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
 
-      # 🔐 Authenticate to Azure using OIDC (no client secret needed)
+      # 🔐 Authenticate to Azure using OIDC
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
@@ -36,15 +48,21 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Export ARM_* env vars so Terraform AzureRM provider (use_oidc=true) picks them up
+      # Export ARM_* so the AzureRM provider can use OIDC
       - name: Set Terraform Azure OIDC env
         run: |
-          echo "ARM_USE_OIDC=true" >> $GITHUB_ENV
-          echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}" >> $GITHUB_ENV
-          echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}" >> $GITHUB_ENV
-          echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
+          echo "ARM_USE_OIDC=true" >> "$GITHUB_ENV"
+          echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}" >> "$GITHUB_ENV"
+          echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}" >> "$GITHUB_ENV"
+          echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> "$GITHUB_ENV"
 
-      - name: Cache Terraform providers
+      # (Optional) Cache provider/plugins to speed up runs
+      - name: Configure TF plugin cache
+        run: |
+          mkdir -p ~/.terraform.d/plugin-cache
+          echo 'plugin_cache_dir = "~/.terraform.d/plugin-cache"' > ~/.terraformrc
+
+      - name: Cache Terraform
         uses: actions/cache@v4
         with:
           path: |
@@ -54,10 +72,8 @@ jobs:
           restore-keys: |
             terraform-${{ runner.os }}-
 
-      - name: Configure TF plugin cache
-        run: |
-          mkdir -p ~/.terraform.d/plugin-cache
-          echo 'plugin_cache_dir = "~/.terraform.d/plugin-cache"' > ~/.terraformrc
+      - name: Terraform Format Check
+        run: terraform fmt -check -diff
 
       - name: Terraform Init
         run: terraform init -reconfigure
@@ -69,5 +85,4 @@ jobs:
         run: terraform plan -out=tfplan
 
       - name: Terraform Apply
-        # If you want an approval gate, move Apply to a separate job with environment protection rules
         run: terraform apply -auto-approve tfplan
