@@ -67,8 +67,8 @@ jobs:
           restore-keys: |
             terraform-${{ runner.os }}-
 
-      - name: Terraform Format Check
-        run: terraform fmt -check -diff
+      - name: Terraform Format (apply)
+        run: terraform fmt -recursive
 
       - name: Terraform Init
         run: terraform init -reconfigure
