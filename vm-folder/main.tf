@@ -1,3 +1,8 @@
+locals {
+  name     = "terraform"
+  location = "West Europe"
+}
+
 resource "azurerm_resource_group" "rg" {
   name     = "${locals.name}-rg"
   location = locals.location
