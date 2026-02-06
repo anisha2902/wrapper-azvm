@@ -22,8 +22,13 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
 
+    # Expose the SSH key to Terraform using TF_VAR_*
+    # This maps to the Terraform variable: var.ssh_public_key
+    env:
+      TF_VAR_ssh_public_key: ${{ secrets.TF_VAR_SSH_PUBLIC_KEY }}
+
     permissions:
-      id-token: write    
+      id-token: write
       contents: read
 
     defaults:
@@ -40,7 +45,7 @@ jobs:
         with:
           terraform_wrapper: false
 
-      # 🔐 Authenticate to Azure using OIDC
+      # 🔐 Authenticate to Azure using OIDC (no client secret needed)
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
@@ -55,7 +60,6 @@ jobs:
           echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}" >> "$GITHUB_ENV"
           echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}" >> "$GITHUB_ENV"
           echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> "$GITHUB_ENV"
-
 
       - name: Cache Terraform
         uses: actions/cache@v4
@@ -80,4 +84,5 @@ jobs:
         run: terraform plan -out=tfplan
 
       - name: Terraform Apply
+        if: github.event_name == 'push'
         run: terraform apply -auto-approve tfplan
