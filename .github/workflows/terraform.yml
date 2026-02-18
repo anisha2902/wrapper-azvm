@@ -3,13 +3,8 @@ name: Terraform Pipeline
 on:
   push:
     branches: [ "main" ]
-    paths:
-      - "vm-folder/**/*.tf"
-      - ".github/workflows/terraform.yml"
   pull_request:
     branches: [ "main" ]
-    paths:
-      - "vm-folder/**/*.tf"
 
 env:
   TF_IN_AUTOMATION: "true"
