@@ -8,7 +8,11 @@ variable "location" {
   default = "eastus"
 }
 
+variable "vm_size" {
+  type    = string
+  default = "Standard_DC1s_v3"
+}
+
 variable "ssh_public_key" {
-  description = "SSH public key to add to the admin user"
   type        = string
 }
